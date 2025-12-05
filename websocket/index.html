@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificaciones en Tiempo Real</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .client-count {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .notifications-container {
+            padding: 30px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .notification-title {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-list {
+            list-style: none;
+        }
+
+        .notification-item {
+            background: #f8f9fa;
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .notification-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .notification-icon {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .notification-content h3 {
+            color: #343a40;
+            margin-bottom: 5px;
+        }
+
+        .notification-content p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .timestamp {
+            color: #adb5bd;
+            font-size: 0.8rem;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Scrollbar personalizada */
+        .notifications-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .notifications-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .notifications-container::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .notifications-container {
+                padding: 20px;
+            }
+            
+            .notification-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .timestamp {
+                margin-left: 0;
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-bell"></i> Notificaciones en Tiempo Real</h1>
+            <p>Recibe notificaciones instantáneas de nuevos usuarios registrados</p>
+        </div>
+        
+        <div class="status-bar">
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Desconectado</span>
+            </div>
+            <div class="client-count">
+                <i class="fas fa-users"></i>
+                <span id="clientCount">0</span> clientes conectados
+            </div>
+        </div>
+        
+        <div class="notifications-container">
+            <div class="notification-title">
+                <i class="fas fa-history"></i> Historial de notificaciones
+            </div>
+            <ul class="notification-list" id="notificationList">
+                <div class="empty-state" id="emptyState">
+                    <i class="fas fa-bell-slash"></i>
+                    <p>No hay notificaciones aún. Las notificaciones aparecerán aquí en tiempo real.</p>
+                </div>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p>Sistema de notificaciones WebSocket • Conectado al servidor Node.js</p>
+            <p id="serverInfo">Conectando...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io('http://localhost:3001');
+        const notificationList = document.getElementById('notificationList');
+        const emptyState = document.getElementById('emptyState');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const clientCount = document.getElementById('clientCount');
+        const serverInfo = document.getElementById('serverInfo');
+        let connectedClients = 0;
+
+        // fecha
+        function formatDate(date) {
+            return date.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // notificación
+        function addNotification(userData) {
+            if (emptyState.style.display !== 'none') {
+                emptyState.style.display = 'none';
+            }
+
+            const notificationItem = document.createElement('li');
+            notificationItem.className = 'notification-item';
+            
+            const now = new Date();
+            
+            notificationItem.innerHTML = `
+                <div class="notification-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="notification-content">
+                    <h3>Nuevo usuario registrado</h3>
+                    <p><strong>Nombre:</strong> ${userData.nombre}</p>
+                    <p><strong>Email:</strong> ${userData.email}</p>
+                </div>
+                <div class="timestamp">
+                    <i class="far fa-clock"></i>
+                    <div>${formatDate(now)}</div>
+                    <div>${now.toLocaleDateString('es-ES')}</div>
+                </div>
+            `;
+            
+            notificationList.insertBefore(notificationItem, notificationList.firstChild);
+        }
+
+        // Actualiza el estado de conexión
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Conectado';
+                serverInfo.textContent = `Conectado al servidor WebSocket (localhost:3001)`;
+            } else {
+                statusDot.className = 'status-dot';
+                statusText.textContent = 'Desconectado';
+                serverInfo.textContent = 'Intentando reconectar...';
+            }
+        }
+
+        // Eventos
+        socket.on('connect', () => {
+            console.log(' Conectado al servidor WebSocket');
+            updateConnectionStatus(true);
+            
+            // Petición al servidor
+            fetch('http://localhost:3001/health')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.clients !== undefined) {
+                        connectedClients = data.clients;
+                        clientCount.textContent = connectedClients;
+                    }
+                })
+                .catch(err => console.error('Error al obtener info del servidor:', err));
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Desconectado del servidor WebSocket');
+            updateConnectionStatus(false);
+            clientCount.textContent = '0';
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Error de conexión:', error);
+            updateConnectionStatus(false);
+        });
+
+        socket.on('nuevo_usuario', (data) => {
+            console.log('📨 Nueva notificación:', data);
+            addNotification(data);
+            
+            // notificación 
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Nuevo usuario registrado", {
+                    body: `Nombre: ${data.nombre}\nEmail: ${data.email}`,
+                    icon: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png"
+                });
+            }
+        });
+        if ("Notification" in window) {
+            if (Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        window.debugAddNotification = () => {
+            addNotification({
+                nombre: "Usuario de Prueba",
+                email: "test@example.com"
+            });
+        };
+
+        setInterval(() => {
+            if (socket.connected) {
+                fetch('http://localhost:3001/health')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.clients !== undefined) {
+                            clientCount.textContent = data.clients;
+                        }
+                    })
+                    .catch(err => console.error('Error en health check:', err));
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
